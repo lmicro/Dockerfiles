@@ -1,0 +1,65 @@
+#!/bin/bash
+
+export PATH=~/scripts:~/.local/bin/:$PATH
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/lib:/var/lib
+
+if [[ $EUID == 0 ]]; then
+	echo "Welcome ROOT guy.  Adding openvpn to PATH.  Use it!"
+	export PATH=$PATH:/etc/openvpn/scripts
+fi
+
+####################################
+# PYTHON PYTHON PYTHON PYTHON PYTHON 
+####################################
+#PYTHON 3
+if [ ! -e ~/.python3 ]
+then
+	echo "Using PYTHON3"
+	export PYTHONPATH=/usr/lib/python3.7/site-packages
+	export PYTHON_EXECUTABLE=/usr/bin/python3
+	ln -f -s /usr/bin/python3.7 /root/scripts/python 
+	alias python='/usr/bin/python3.7'
+	banner PYTHON3
+else
+#PYTHON 2
+	echo "Using PYTHON2"
+	export PYTHONPATH=/usr/lib/python2.7/site-packages:/usr/lib/python2.7/site-packages/mako/
+	export PYTHON_EXECUTABLE=/usr/bin/python2
+	ln -f -s /usr/bin/python2.7 /root/scripts/python && \
+	alias python='/usr/bin/python2.7'
+	#export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python2.7
+	banner PYTHON2
+fi
+####################################
+# END PYTHON PYTHON PYTHON PYTHON PYTHON 
+####################################
+
+####################################
+# QT QT QT QT QT QT QT QT QT QT
+####################################
+# QT VERSION
+
+# QT5 QT5 QT5
+if [ ! -e ~/.qt4 ]
+then
+	echo "QT5: Configuring QT5 for this environment."
+	#ENV QT_SELECT=5
+	#ENV QT_PLUGIN_PATH /usr/lib/qt/plugins
+	export QT_SELECT=5
+	export QT_PLUGIN_PATH=/usr/lib/qt/plugins
+	banner QT5
+else
+# QT4 QT4 QT4
+	echo "Configuring QT4 for this environment."
+	#ENV QT_SELECT=4
+	#ENV QT_PLUGIN_PATH /usr/lib/qt4/plugins
+	export QT_SELECT=4
+	export QT_PLUGIN_PATH=/usr/lib/qt4/plugins
+	#RUN ln -s /usr/lib/qt4/bin/qmake /usr/bin/qmake
+	#RUN ls -l /usr/bin/qmake /usr/lib/qt4/bin/qmake
+	banner QT4
+fi
+
+####################################
+# END QT QT QT QT QT QT QT QT
+####################################

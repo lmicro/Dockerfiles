@@ -1,0 +1,171 @@
+FROM myarch-base:latest
+MAINTAINER matthew.presti@gmail.com
+ENV LD_LIBRARY_PATH /usr/local/lib:/usr/lib:/var/lib
+
+# doxygen-doc for doxygen (dot component)
+# gnuradio-iqbal Osmocom IQ Imbalance Correction
+# hackrf - hackrf binaries and libraries
+# opencl-headers for LTE cell scanner
+RUN pacman -Syu --noconfirm --needed gnuradio-iqbal hackrf doxygen-docs qwtplot3d glu opencl-headers 
+
+# Already set python variables
+# Python 3 Related Functions
+# Python settings
+RUN pacman -S --needed --noconfirm qt4 python2 python2-pip python2-mako pygtk  python2-lxml python2-setuptools python2-numpy python2-cheetah python2-scapy && \
+	mkdir -p /root/scripts && \
+	ln -f -s /usr/bin/python2.7 /root/scripts/python && \
+    	alias python='/usr/bin/python2.7'
+	
+#excluding python2-qtpy
+ENV PYTHONPATH /usr/lib/python2.7/site-packages:/usr/local/lib/python2.7/site-packages/
+ENV PYTHON_EXECUTABLE=/usr/bin/python2
+
+################################################################################
+# END-PYTHON END-PYTHON END-PYTHON END-PYTHON END-PYTHON END-PYTHON END-PYTHON # 
+################################################################################
+ENV QT_SELECT=4
+ENV QMAKE /usr/lib/qt4/bin/qmake
+#RUN ls -l /usr/bin/qmake /usr/lib/qt4/bin/qmake
+#QT_QWTPLOT3D_INCLUDE_DIR QT_QWTPLOT3D_LIBRARY
+
+
+
+RUN pip2 install PyBOMBS dbus-python  && \
+	pip2 install dbus-python  && \
+	pybombs auto-config && \
+	pybombs -vv recipes add-defaults
+
+
+
+#RUN git clone https://aur.archlinux.org/soapysdr-git.git && \
+# cd soapysdr-git && \
+# makepkg -si --noconfirm
+
+RUN git clone https://github.com/osmocom/gr-osmosdr && \
+    cd gr-osmosdr && \
+    mkdir build && \
+    cd build/ && \
+    cmake -DPYTHON_EXECUTABLE=/usr/bin/python2 \
+	-DENABLE_FCD=ON/OFF \
+	-DENABLE_UHD=OFF \
+	-DENABLE_MIRI=OFF \
+	-DENABLE_BLADERF=OFF \ 
+	-DENABLE_RFSPACE=OFF \
+	-DENABLE_AIRSPY=OFF \
+	-DENABLE_REDPITAYA=OFF \
+	-DENABLE_FREESRP=OFF \
+	-DDETACH_KERNEL_DRIVER=ON -DINSTALL_UDEV_RULES=ON \
+	.. && \
+    make && \
+    make install && \
+    ldconfig
+
+#RUN pybombs -vv install gr-osmosdr
+#RUN pybombs -vv install gr-gsm
+#RUN pacman -S --noconfirm --needed gnuradio-osmosdr cython qspectrumanalyzer gqrx
+RUN pacman -S --noconfirm --needed python2-sip
+
+RUN chmod +x /usr/sbin/makepkg 
+
+RUN git clone https://aur.archlinux.org/python-sip-pyqt4.git && \
+	cd python-sip-pyqt4 && \
+	makepkg -si --noconfirm
+
+RUN git clone https://aur.archlinux.org/python2-sip-pyqt4.git && \
+	cd python2-sip-pyqt4 && \
+	makepkg -s --noconfirm --nocheck 
+
+RUN git clone https://git.osmocom.org/gr-gsm && \
+    cd gr-gsm && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    mkdir $HOME/.grc_gnuradio/ $HOME/.gnuradio && \
+    #make -j 7 && \ 
+    make && \ 
+    make install && \
+    ldconfig 
+
+
+RUN git clone https://github.com/gnuradio/gr-inspector && \
+	cd gr-inspector && \
+	mkdir build && \
+	cd build && \
+	cmake .. && \
+	make -j4 && \
+	make install && \
+	ldconfig
+
+RUN git clone https://github.com/scateu/kalibrate-hackrf && \
+	cd kalibrate-hackrf/ && \
+	./bootstrap && \
+	./configure && \
+	make && \
+	make install && \
+	ldconfig
+
+#itpp for  LTE-Cell-Scanner
+RUN git clone https://aur.archlinux.org/itpp.git && \
+	cd itpp && \
+	makepkg -si --noconfirm
+
+# opencl for LTE-Cell-Scanner
+#RUN git clone  https://aur.archlinux.org/intel-opencl.git && \
+#	cd intel-opencl && \
+#	makepkg -si --noconfirm
+
+#opencl runtime for LTE-Cell-Scanner
+#RUN git clone https://aur.archlinux.org/intel-opencl-runtime.git && \
+#	cd intel-opencl-runtime && \
+#	# fix ncurses version check for this package.  Should be plain ncurses prob. version 6
+#	gawk -i inplace '{ gsub(/ncurses5-compat-libs/, "ncurses") }; { print }' PKGBUILD  && \
+#	makepkg -si --noconfirm && \
+#	#cp /opt/intel/opencl-runtime/linux/compiler/lib/intel64_lin/libOpenCL.so* /usr/lib 
+
+RUN git clone https://github.com/JiaoXianjun/LTE-Cell-Scanner && \
+	# move some libraries and includes around
+	ln -s /usr/include/libhackrf /usr/local/include/libhackrf && \
+	cd LTE-Cell-Scanner && \
+	mkdir build && \
+	cd build && \
+	cmake -DUSE_HACKRF=1 .. && \
+	make && \ 
+	make install && \
+	ldconfig
+
+RUN git clone https://github.com/Oros42/IMSI-catcher.git 
+
+
+
+
+#Install yay for AUR packages
+RUN git clone https://aur.archlinux.org/yay.git && \
+	cd yay && \
+	makepkg -si --noconfirm
+
+RUN git clone https://aur.archlinux.org/phonon-qt4.git && \
+	# fix key problem with below
+	cd phonon-qt4 && \
+	gpg --recv-=keys B92A5F04EC949121 && \
+	makepkg -si --noconfirm 
+
+RUN git clone https://aur.archlinux.org/pyqt4.git && \
+	cd pyqt4 && \
+	makepkg -si --noconfirm --nodeps
+
+# Attempt gr-cdma
+#RUN git clone https://github.com/anastas/gr-cdma.git && \
+#	# replace text in this file: gr-cdma/python/cdma_parameters.py
+#	# prefix="/home/anastas/gr-cdma/"
+#	gawk -i inplace '{ gsub(/\/home\/anastas\/gr-cdma\//, "/gr-cdma-out") }; { print }' gr-cdma/python/cdma_parameters.py  && \
+#	gawk -i inplace '{ gsub(/^#en_US.UTF-8 UTF-8/, "en_US.UTF-8 UTF-8") }; { print }' /etc/locale.gen  && \
+#	/usr/bin/locale-gen && \
+#	cd gr-cdma && \
+#	mkdir build_cdma && \
+#	cd build_cdma && \
+#	cmake -D ENABLE_DOXYGEN=ON .. && \
+#	make && \
+#	make install && \
+#	ldconfig 
+
+
